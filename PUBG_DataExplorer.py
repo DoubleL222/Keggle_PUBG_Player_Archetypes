@@ -1,11 +1,14 @@
 import pandas as pd
 
-#usecols determine which column you are importing
-#nrows=20 will give you the first 20 rows.
-data = pd.read_csv('agg_match_stats_0.csv', usecols=[1,2], error_bad_lines=False)
+#nrows=20
+#usecols=[1,2]
+temp_agg_data = pd.read_csv('agg_match_stats_0.csv', nrows=50000, error_bad_lines=False)
+temp_death_data = pd.read_csv('agg_match_stats_0.csv', nrows=50000, error_bad_lines=False)
 
-#instead, just append it by the different csv files.
-combinedData = data.append(data)
+for x in range(1,5):
+    print("Doing file #"+str(x))
+    Agg_Data = Agg_Data.append(pd.read_csv('agg_match_stats_'+str(x)+'.csv', nrows=50000, error_bad_lines=False))
+    #Death_Data = Death_Data.append(pd.read_csv('FILENAME'+str(x)+'.csv', nrows=50000, error_bad_lines=False))
 
-#When done, then length should be around 65 million
-print(len(combinedData))
+
+#Agg_Data.player_name.value_count()
