@@ -1,5 +1,5 @@
 import pandas as pd
-import PUBG_Data_Mining.Measures as measure
+import Measures as measure
 
 # nrows=20
 # usecols=[1,2]
@@ -10,6 +10,7 @@ temp_agg_data = pd.read_csv('data/aggregates/agg_match_stats_0.csv', nrows=1000,
 temp_death_data = pd.read_csv('data/deaths/kill_match_stats_final_0.csv', nrows=1000, error_bad_lines=False)
 '''
 
+#'''
 #LOADING IN ALL DATA
 temp_agg_data = pd.read_csv('data/aggregates/agg_match_stats_0.csv', error_bad_lines=False)
 temp_agg_data.append(pd.read_csv('data/aggregates/agg_match_stats_1.csv', error_bad_lines=False))
@@ -22,7 +23,7 @@ temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_1.csv', e
 temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_2.csv', error_bad_lines=False))
 temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_3.csv', error_bad_lines=False))
 temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_4.csv', error_bad_lines=False))
-
+#'''
 match_summary_data = []
 
 for index, row in temp_agg_data.iterrows():
