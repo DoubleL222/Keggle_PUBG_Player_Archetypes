@@ -1,3 +1,6 @@
+import math as math
+from collections import Counter
+
 def travel_ratio(row):
     player_dist_total = row['player_dist_walk'] + row['player_dist_ride']
 
@@ -17,10 +20,27 @@ def kill_knockdown_ratio(row):
 
 
 def kill_distance(row, kill_rows):
-    return 'Kill Distance (WIP)'
+    i = 0
+    sum = 0
+    for index, single_row in kill_rows.iterrows():
+        i = i+1
+        x1 = single_row['killer_position_x']
+        y1 = single_row['killer_position_y']
+        x2 = single_row['victim_position_x']
+        y2 = single_row['victim_position_y']
+        sum += math.hypot(x2 - x1, y2 - y1)
+
+    if i == 0:
+        return 0
+    return sum/i
 
 
 def weapon_ratio(row, kill_rows):
-    return 'Weapon Ratio (WIP)'
-
-
+    weapon_uses = []
+    for index, single_row in kill_rows.iterrows():
+        weapon_uses.append(single_row['killed_by'])
+    if weapon_uses.__len__() > 0:
+        most_common_weapon = Counter(weapon_uses).most_common(1)[0][0]
+        return most_common_weapon
+    else:
+        return 'none'
