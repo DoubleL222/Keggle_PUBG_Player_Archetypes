@@ -27,7 +27,8 @@ temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_3.csv', e
 temp_death_data.append(pd.read_csv('data/deaths/kill_match_stats_final_4.csv', error_bad_lines=False))
 '''
 temp_agg_data.sort_values(by=['match_id'], inplace=True)
-temp_death_data.sort_values(by=['match_id'], inplace=True)
+#temp_death_data.sort_values(by=['match_id'], inplace=True)
+
 match_summary_data = []
 
 start_time = time.time()
@@ -41,8 +42,9 @@ for index, row in temp_agg_data.iterrows():
         print('Rows: ', i, '; time:',format(time.time()-start_time, '.2f'))
     curr_match_id = row['match_id']
     if not prevMatchId == curr_match_id:
-        death_data = temp_death_data.loc[temp_death_data['match_id'] == row['match_id']]
-        temp_death_data.drop(temp_death_data.index[0: len(death_data.index)], inplace=True)
+        death_data = temp_death_data.loc[temp_death_data['match_id'] == curr_match_id]
+        temp_death_data.drop(temp_death_data.index[[death_data.index.values]], inplace=True)
+        temp_death_data.reset_index(drop=True, inplace=True)
         prevMatchId = curr_match_id
 
     # Find all rows for the current match
