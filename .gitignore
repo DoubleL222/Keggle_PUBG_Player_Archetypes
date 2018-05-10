@@ -1,8 +1,3 @@
-# Data
-Data/
-output_data/
-*.zip
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -93,6 +88,11 @@ ENV/
 # Spyder project settings
 .spyderproject
 
+# Rope project settings
+.ropeproject
+
+#PyCharm settings
+.idea/
 # Rope project settings
 .ropeproject
 
