@@ -98,7 +98,7 @@ if __name__ == '__main__':
     sns.set_style('white')
     sns.set_color_codes()
     pca = PCA(n_components=2)
-    tSne = TSNE(n_components=2, n_iter=1000, n_iter_without_progress=300, verbose=4)
+    tSne = TSNE(n_components=2, init='pca', n_iter=1000, n_iter_without_progress=300, verbose=4)
 
     data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
@@ -139,18 +139,19 @@ if __name__ == '__main__':
         'travel_ratio', 'kill_count',
         'knockdown_count', 'player_assists',
         'kill_knockdown_ratio', 'kill_distance',
-        'survive_time', 'player_dmg', 'team_placement',
-        #'party_size',
-        'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee', 'Crossbow',
-        'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
+        'survive_time', 'player_dmg', 'team_placement'
+        #,'party_size'
+        #,'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee', 'Crossbow'
+        #,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ]]
-    #TEST!
+    significance = 0.03
+    print("Fitting and transforming data...")
     selected_data = pd.DataFrame(tSne.fit_transform(selected_data))
-
+    selected_data.to_csv(path_or_buf="TSNE-fitted data without weapons and party_size.csv", index=False)
+    #selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
     print("Running HDBSCAN...")
-    hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=1155, alpha=1.0)
+    hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
     hdbscan_instance.fit(selected_data)
-    # hdbscan_instance.fit(selected_data)
 
     print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
     print("HDBSCAN done!")
@@ -164,7 +165,7 @@ if __name__ == '__main__':
     #dist_mat = generate_distance_matrix(clean_data)
     # transformed = pd.DataFrame(pca.fit_transform(selected_data))
 
-    plot_kwds = {'alpha': 0.2, 's': 1, 'linewidths': 0}
+    plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
 
     palette = sns.color_palette('hls', hdbscan_instance.labels_.max()+1)
     cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
