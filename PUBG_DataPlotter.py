@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import hdbscan
 import seaborn as sns
+import collections
 
 import matplotlib.pyplot as pyplot
 from sklearn.decomposition import PCA
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     sns.set_style('white')
     sns.set_color_codes()
     pca = PCA(n_components=2)
-    tSne = TSNE(n_components=2, init='pca', n_iter=1500, n_iter_without_progress=300, verbose=4)
+    tSne = TSNE(n_components=2, init='pca', n_iter=1000, n_iter_without_progress=300, verbose=4)
 
     data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
@@ -113,7 +114,7 @@ if __name__ == '__main__':
     # Delete the rows with label "Ireland"
     # For label-based deletion, set the index first on the dataframe:
     data = data.query('kill_count != 0')
-    #data = data.dropna(how='all')
+    # data = data.dropna(how='all')
     data.reset_index(inplace=True)
     print("Number of rows after cleaning: " + str(data.__len__()))
 
@@ -144,39 +145,50 @@ if __name__ == '__main__':
         ,'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee', 'Crossbow'
         ,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ]]
-    significance = 0.03
+    significance = 0.05
     print("Fitting and transforming data...")
-    #selected_data = pd.DataFrame(tSne.fit_transform(selected_data))
-    selected_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
-    #selected_data.to_csv(path_or_buf="TSNE-fitted data without weapons and party_size.csv", index=False)
-    #selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
-    #selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
-    print("Running HDBSCAN...")
-    hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
-    hdbscan_instance.fit(selected_data)
+    # transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
+    # transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
+    # transformed_data.to_csv(path_or_buf="TSNE-fitted data without weapons and party_size.csv", index=False)
+    # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
+    # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
 
-    print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
-    print("HDBSCAN done!")
+    for i in range(1, 2):
+        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
+        hdbscan_instance.fit(selected_data)
+        #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
+        transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
+        #transformed_data = pd.DataFrame(pca.fit_transform(selected_data))
+        #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
+        print("Running HDBSCAN...")
+        #hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
+        #hdbscan_instance.fit(transformed_data)
 
-    pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels.csv", index=True)
+        print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
+        print("HDBSCAN done!")
 
-    # print("Plotting condensed tree...")
-    # hdbscan_instance.condensed_tree_.plot()
-    # pyplot.show()
+        cluster_label_counts = collections.Counter(hdbscan_instance.labels_)
+        print("# of unclustered data points: " + str(cluster_label_counts[-1]))
 
-    # Draw scatter plots
-    print('Drawing scatter plots...')
-    #dist_mat = generate_distance_matrix(clean_data)
-    # transformed = pd.DataFrame(pca.fit_transform(selected_data))
+        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels (" + str(i) + ") craycray.csv", index=True)
 
-    plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
+        # print("Plotting condensed tree...")
+        # hdbscan_instance.condensed_tree_.plot()
+        # pyplot.show()
 
-    palette = sns.color_palette('hls', hdbscan_instance.labels_.max()+1)
-    cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
-                      if col >= 0 else (0.8, 0.8, 0.8) for col, sat in
-                      zip(hdbscan_instance.labels_, hdbscan_instance.probabilities_)]
+        # Draw scatter plots
+        print('Drawing scatter plots...')
+        #dist_mat = generate_distance_matrix(clean_data)
+        # transformed = pd.DataFrame(pca.fit_transform(transformed_data))
 
-    pyplot.scatter(selected_data[0], selected_data[1], color=cluster_colors, **plot_kwds)
-    pyplot.title(str(hdbscan_instance.min_samples))
-    pyplot.savefig('scatterplot' + str(hdbscan_instance.min_samples) + '.png', dpi=300)
-    pyplot.show()
+        plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
+
+        palette = sns.color_palette('hls', hdbscan_instance.labels_.max()+1)
+        cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
+                          if col >= 0 else (0.8, 0.8, 0.8) for col, sat in
+                          zip(hdbscan_instance.labels_, hdbscan_instance.probabilities_)]
+
+        pyplot.scatter(transformed_data[0], transformed_data[1], color=cluster_colors, **plot_kwds)
+        pyplot.title(str(hdbscan_instance.min_samples))
+        pyplot.savefig('scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples craycray.png', dpi=300)
+        pyplot.show()
