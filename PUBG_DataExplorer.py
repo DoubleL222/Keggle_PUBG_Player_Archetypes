@@ -18,7 +18,7 @@ def Write_To_File(_i, data):
                                    ]
     # SAVE MATRIX TO FILE
     # print(list(pandas_summary_data.columns.values))
-    pandas_summary_data.to_csv("output_data/summary_data_" + str(_i) + ".csv", index=False)
+    pandas_summary_data.to_csv("output_data/summary_data_1_" + str(_i) + ".csv", index=False)
 
 
 # Number of matches wanted
@@ -34,8 +34,8 @@ temp_death_data = pd.read_csv('data/deaths/kill_match_stats_final_0.csv', nrows=
 '''
 
 # '''
-temp_agg_data = pd.read_csv('data/aggregates/agg_match_stats_0.csv', error_bad_lines=False)
-temp_death_data = pd.read_csv('data/deaths/kill_match_stats_final_0.csv', error_bad_lines=False)
+temp_agg_data = pd.read_csv('data/aggregates/agg_match_stats_1.csv', error_bad_lines=False)
+temp_death_data = pd.read_csv('data/deaths/kill_match_stats_final_1.csv', error_bad_lines=False)
 # '''
 
 '''
@@ -154,4 +154,4 @@ pandas_summary_data.columns = ['player_name', 'match_id', 'distance_walked', 'di
                                'Melee', 'Crossbow', 'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
                                ]
 # SAVE MATRIX TO FILE
-pandas_summary_data.to_csv("summary_data.csv", index=False)
+pandas_summary_data.to_csv("summary_data_1.csv", index=False)
