@@ -93,3 +93,8 @@ ENV/
 
 #PyCharm settings
 .idea/
+# Rope project settings
+.ropeproject
+
+#PyCharm settings
+.idea/
