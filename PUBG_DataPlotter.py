@@ -115,10 +115,11 @@ def getAveragePlayerFromCluster(data, labels):
 
 def plot(algorithm, selected_data, image_name, dpi=300):
     transformed_data = pd.DataFrame(algorithm.fit_transform(selected_data))
+
+    transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ").csv", index=False)
+
     # Draw scatter plots
     print('Drawing scatter plots...')
-    #dist_mat = generate_distance_matrix(clean_data)
-    # transformed = pd.DataFrame(pca.fit_transform(transformed_data))
 
     plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
 
@@ -136,13 +137,26 @@ def plot(algorithm, selected_data, image_name, dpi=300):
     pyplot.show()
 
 
+def output_centroids(centroids):
+    count = 0
+    column_names = []
+    for _cent in centroids:
+        if count == 0:
+            new_file = pd.DataFrame(_cent.values).T
+            column_names = _cent.index
+        else:
+            new_file = new_file.append(pd.DataFrame(_cent.values).T)
+        count = count + 1
+    new_file.columns = column_names
+    new_file.to_csv('HDBSCAN centroids.csv', index=False)
+
 if __name__ == '__main__':
     pyplot.close('all')
     sns.set_context('poster')
     sns.set_style('white')
     sns.set_color_codes()
     pca = PCA(n_components=2)
-    tSne = TSNE(n_components=2, init='pca', n_iter=350, n_iter_without_progress=300, verbose=4)
+    tSne = TSNE(n_components=2, init='pca', n_iter=1500, n_iter_without_progress=300, verbose=4)
 
     print('Loading data...')
     print("Loading file 1...")
@@ -220,21 +234,21 @@ if __name__ == '__main__':
     #data['kill_count'] = multiply_column(data['kill_count'], 0.4)
     #data['survive_time'] = multiply_column(data['survive_time'], 0.25)
     #data['kill_knockdown_ratio'] = multiply_column(data['Zone'], 0.25)
-    #data['Sniper Rifle'] = multiply_column(data['Sniper Rifle'], 0.1)
-    #data['Carbine'] = multiply_column(data['Carbine'], 0.1)
-    #data['Assault Rifle'] = multiply_column(data['Assault Rifle'], 0.1)
-    #data['LMG'] = multiply_column(data['LMG'], 0.1)
-    #data['SMG'] = multiply_column(data['SMG'], 0.1)
-    #data['Shotgun'] = multiply_column(data['Shotgun'], 0.1)
-    #data['Pistols and Sidearm'] = multiply_column(data['Pistols and Sidearm'], 0.1)
-    #data['Melee'] = multiply_column(data['Melee'], 0.1)
-    #data['Crossbow'] = multiply_column(data['Crossbow'], 0.1)
-    #data['Throwable'] = multiply_column(data['Throwable'], 0.1)
-    #data['Vehicle'] = multiply_column(data['Vehicle'], 0.0)
-    #data['Environment'] = multiply_column(data['Environment'], 0.0)
-    #data['Zone'] = multiply_column(data['Zone'], 0.0)
-    #data['Other'] = multiply_column(data['Other'], 0.0)
-    #data['down and out'] = multiply_column(data['down and out'], 0.0)
+    data['Sniper Rifle'] = multiply_column(data['Sniper Rifle'], 0.4)
+    data['Carbine'] = multiply_column(data['Carbine'], 0.4)
+    data['Assault Rifle'] = multiply_column(data['Assault Rifle'], 0.4)
+    data['LMG'] = multiply_column(data['LMG'], 0.4)
+    data['SMG'] = multiply_column(data['SMG'], 0.4)
+    data['Shotgun'] = multiply_column(data['Shotgun'], 0.4)
+    data['Pistols and Sidearm'] = multiply_column(data['Pistols and Sidearm'], 0.4)
+    data['Melee'] = multiply_column(data['Melee'], 0.4)
+    data['Crossbow'] = multiply_column(data['Crossbow'], 0.4)
+    data['Throwable'] = multiply_column(data['Throwable'], 0.4)
+    data['Vehicle'] = multiply_column(data['Vehicle'], 0.4)
+    data['Environment'] = multiply_column(data['Environment'], 0.4)
+    data['Zone'] = multiply_column(data['Zone'], 0.4)
+    data['Other'] = multiply_column(data['Other'], 0.4)
+    data['down and out'] = multiply_column(data['down and out'], 0.4)
 
     print("Selecting data columns...")
     selected_data = data[[
@@ -254,7 +268,7 @@ if __name__ == '__main__':
 
     selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
 
-    significance = 0.02
+    significance = 0.01
     print("Fitting and transforming data...")
     # transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
     # transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
@@ -262,13 +276,14 @@ if __name__ == '__main__':
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
 
-    for i in range(1, 2):
+    for i in range(3, 4):
         print("Running HDBSCAN...")
         hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
         hdbscan_instance.fit(selected_data)
         # Save HDBSCAN labels to CSV
         pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels (" + str(i) + ").csv", index=True)
         print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
+
         print("HDBSCAN done!")
 
         print("\nCluster label counts:")
@@ -279,6 +294,11 @@ if __name__ == '__main__':
         # PCA PLOTTING
         plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
 
+        print("Plotting condensed tree...")
+        hdbscan_instance.condensed_tree_.plot()
+        pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png', dpi=300)
+        pyplot.show()
+
         print("Getting average players...")
         unique_clusters, average_players = getAveragePlayerFromCluster(orig_data, hdbscan_instance.labels_)
         j = 0
@@ -288,11 +308,14 @@ if __name__ == '__main__':
             print(x)
             j = j + 1
 
+        output_centroids(average_players)
+
         # T-SNE PLOTTING
         print("T-SNE plotting...")
         plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
         #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
         #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
+
 
 # label_data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/TSNE-fitted data with all data - HDBSCAN labels (1).csv")['label'].values
 # data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/Selected data.csv")
