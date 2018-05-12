@@ -10,8 +10,9 @@ __pycache__/
 *.png
 
 # Data files
-*.csv
 *.zip
+output_data/
+Data/
 
 # Distribution / packaging
 .Python
