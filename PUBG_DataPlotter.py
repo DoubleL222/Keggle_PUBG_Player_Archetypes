@@ -58,14 +58,22 @@ import matplotlib.cm as cm
 # #SAVE MATRIX TO FILE
 # pandas_summary_data.to_csv("summary_data.csv")
 
+
 # NORMALISE COLUMN (value to range [0,1])
-def normalise_column(_col):
+def normalise_column(_col, _multiplier=1.0):
     max_val = np.amax(_col)
     min_val = np.amin(_col)
     new_col = []
     for _val in _col:
-        _newVal = (_val - min_val) / (max_val - min_val)
+        _newVal = ((_val - min_val) / (max_val - min_val)) * _multiplier
         new_col.append(_newVal)
+    return np.array(new_col)
+
+
+def multiply_column(_col, _multiplier):
+    new_col = []
+    for _val in _col:
+        new_col.append(_val*_multiplier)
     return np.array(new_col)
 
 
@@ -82,7 +90,7 @@ def find_outliers(_col, outer_fence_factor):
         if _val < outer_fence_low or _val > outer_fence_high:
             indices.append(list(_col).index(_val))
             # print(_val)
-    print("Indices: " + str(indices.__len__()))
+    #print("Indices: " + str(indices.__len__()))
     return indices
 
 
@@ -92,6 +100,41 @@ def replace_outliers_with_medians(_data, _colName, _outlier_indice):
     _data.loc[_colName, _outlier_indice] = median_value
     return
 
+def getAveragePlayerFromCluster(data, labels):
+    unique_clusters = set(labels)
+    unique_clusters = sorted(unique_clusters)
+    centroids = [[] for x in unique_clusters]
+    i = 0
+    for cluster in unique_clusters:
+        indices = np.where(labels == cluster)
+        cluster_data = data.iloc[indices]
+        centroids[i] = cluster_data.mean()
+        i = i+1
+    return unique_clusters, centroids
+
+
+def plot(algorithm, selected_data, image_name, dpi=300):
+    transformed_data = pd.DataFrame(algorithm.fit_transform(selected_data))
+    # Draw scatter plots
+    print('Drawing scatter plots...')
+    #dist_mat = generate_distance_matrix(clean_data)
+    # transformed = pd.DataFrame(pca.fit_transform(transformed_data))
+
+    plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
+
+    palette = sns.color_palette('deep', hdbscan_instance.labels_.max()+1)
+    cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
+                      if col >= 0 else (0.95, 0.95, 0.95) for col, sat in
+                      zip(hdbscan_instance.labels_, hdbscan_instance.probabilities_)]
+
+    print("\nLabels:")
+    print(sorted(collections.Counter(hdbscan_instance.labels_)))
+
+    pyplot.scatter(x=transformed_data[0], y=transformed_data[1], color=cluster_colors, **plot_kwds)
+    pyplot.title(str(hdbscan_instance.min_cluster_size))
+    pyplot.savefig(image_name, dpi=dpi)
+    pyplot.show()
+
 
 if __name__ == '__main__':
     pyplot.close('all')
@@ -99,27 +142,65 @@ if __name__ == '__main__':
     sns.set_style('white')
     sns.set_color_codes()
     pca = PCA(n_components=2)
-    tSne = TSNE(n_components=2, init='pca', n_iter=1000, n_iter_without_progress=300, verbose=4)
+    tSne = TSNE(n_components=2, init='pca', n_iter=350, n_iter_without_progress=300, verbose=4)
 
-    data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
+    print('Loading data...')
+    print("Loading file 1...")
+    orig_data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
-    # for i in range(2, 30):
-    #     data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '0.csv', error_bad_lines=False))
+    for i in range(2, 3):
+        print("Loading file " + str(i) + "...")
+        orig_data = orig_data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
 
-    data.reset_index(inplace=True)
-
-    print("Data Loaded!")
-
-    print("Removing players with no kills...")
-    # Delete the rows with label "Ireland"
-    # For label-based deletion, set the index first on the dataframe:
-    data = data.query('kill_count != 0')
-    # data = data.dropna(how='all')
-    data.reset_index(inplace=True)
-    print("Number of rows after cleaning: " + str(data.__len__()))
+    orig_data.reset_index(inplace=True)
 
     # Clean Data
-    print("Maximum kill distance: " + str(data['kill_distance'].max()))
+    print("Removing game_size column...")
+    orig_data = orig_data.drop(columns=['game_size'], axis=1)
+
+    print("Removing players with no kills...")
+    orig_data = orig_data.query('kill_count != 0')
+    #orig_data = orig_data.query('survive_time > 600')
+    #orig_data = orig_data.query('party_size == 2')
+
+    # Replaced NaN values with median of the actual values
+    print("Replacing NaN values in killed_from with median of the actual values...")
+    median = orig_data.query('killed_from != "Nan"')['killed_from'].median()
+    orig_data['killed_from'] = orig_data['killed_from'].fillna(median)
+
+    print("Removing outliers...")
+    # REMOVE OUTLIERS distance_walked
+    outlier_indices = find_outliers(orig_data['distance_walked'], 5)
+    #print("distance_walked outliers: ", orig_data.iloc[outlier_indices]['distance_walked'])
+    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+
+    # REMOVE OUTLIERS kill_distance
+    outlier_indices = find_outliers(orig_data['kill_distance'], 5)
+    #print("kill_distance outliers: ", orig_data.iloc[outlier_indices]['kill_distance'])
+    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+
+    # REMOVE OUTLIERS FROM killed_from
+    outlier_indices = find_outliers(orig_data['killed_from'], 5)
+    #print("killed_from outliers: ", orig_data.iloc[outlier_indices]['killed_from'])
+    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+
+    # REMOVE OUTLIERS player_dmg
+    outlier_indices = find_outliers(orig_data['player_dmg'], 5)
+    #print("player_dmg outliers: ", orig_data.iloc[outlier_indices]['player_dmg'])
+    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+
+    # REMOVE OUTLIERS FROM survive_time
+    outlier_indices = find_outliers(orig_data['survive_time'], 5)
+    #print("Survive time outliers: ", orig_data.iloc[outlier_indices]['survive_time'])
+    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+
+    orig_data.reset_index(inplace=True)
+
+    print("Number of rows after cleaning: " + str(orig_data.__len__()))
+
+    print("Maximum kill distance: " + str(orig_data['kill_distance'].max()))
+
+    data = orig_data.copy(True)
 
     print("Normalizing data...")
     # Normalize Data
@@ -133,19 +214,47 @@ if __name__ == '__main__':
     data['player_dmg'] = normalise_column(data['player_dmg'])
     data['killed_from'] = normalise_column(data['killed_from'])
     data['team_placement'] = normalise_column(data['team_placement'])
-    data['party_size'] = normalise_column(data['party_size'])
+    #data['party_size'] = normalise_column(data['party_size'], 0.0)
 
+    print("Weighing column data...")
+    #data['kill_count'] = multiply_column(data['kill_count'], 0.4)
+    #data['survive_time'] = multiply_column(data['survive_time'], 0.25)
+    #data['kill_knockdown_ratio'] = multiply_column(data['Zone'], 0.25)
+    #data['Sniper Rifle'] = multiply_column(data['Sniper Rifle'], 0.1)
+    #data['Carbine'] = multiply_column(data['Carbine'], 0.1)
+    #data['Assault Rifle'] = multiply_column(data['Assault Rifle'], 0.1)
+    #data['LMG'] = multiply_column(data['LMG'], 0.1)
+    #data['SMG'] = multiply_column(data['SMG'], 0.1)
+    #data['Shotgun'] = multiply_column(data['Shotgun'], 0.1)
+    #data['Pistols and Sidearm'] = multiply_column(data['Pistols and Sidearm'], 0.1)
+    #data['Melee'] = multiply_column(data['Melee'], 0.1)
+    #data['Crossbow'] = multiply_column(data['Crossbow'], 0.1)
+    #data['Throwable'] = multiply_column(data['Throwable'], 0.1)
+    #data['Vehicle'] = multiply_column(data['Vehicle'], 0.0)
+    #data['Environment'] = multiply_column(data['Environment'], 0.0)
+    #data['Zone'] = multiply_column(data['Zone'], 0.0)
+    #data['Other'] = multiply_column(data['Other'], 0.0)
+    #data['down and out'] = multiply_column(data['down and out'], 0.0)
+
+    print("Selecting data columns...")
     selected_data = data[[
-        'distance_walked', 'distance_rode',
-        'travel_ratio', 'kill_count',
-        'knockdown_count', 'player_assists',
-        'kill_knockdown_ratio', 'kill_distance',
-        'survive_time', 'player_dmg', 'team_placement'
-        ,'party_size'
+          'distance_walked', 'distance_rode'
+        , 'travel_ratio'
+        , 'kill_count'
+        , 'knockdown_count', 'player_assists'
+        , 'kill_knockdown_ratio'
+        , 'kill_distance'
+        , 'killed_from'
+        , 'survive_time'
+        , 'player_dmg'
+        ,'team_placement'
         ,'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee', 'Crossbow'
         ,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ]]
-    significance = 0.05
+
+    selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
+
+    significance = 0.02
     print("Fitting and transforming data...")
     # transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
     # transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
@@ -154,41 +263,41 @@ if __name__ == '__main__':
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
 
     for i in range(1, 2):
-        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
-        hdbscan_instance.fit(selected_data)
-        #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
-        transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
-        #transformed_data = pd.DataFrame(pca.fit_transform(selected_data))
-        #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
         print("Running HDBSCAN...")
-        #hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
-        #hdbscan_instance.fit(transformed_data)
-
+        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
+        hdbscan_instance.fit(selected_data)
+        # Save HDBSCAN labels to CSV
+        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels (" + str(i) + ").csv", index=True)
         print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
         print("HDBSCAN done!")
 
+        print("\nCluster label counts:")
         cluster_label_counts = collections.Counter(hdbscan_instance.labels_)
         print("# of unclustered data points: " + str(cluster_label_counts[-1]))
 
-        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels (" + str(i) + ") craycray.csv", index=True)
+        print("PCA plotting...")
+        # PCA PLOTTING
+        plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
 
-        # print("Plotting condensed tree...")
-        # hdbscan_instance.condensed_tree_.plot()
-        # pyplot.show()
+        print("Getting average players...")
+        unique_clusters, average_players = getAveragePlayerFromCluster(orig_data, hdbscan_instance.labels_)
+        j = 0
+        for x in average_players:
+            print('\nCluster: ', unique_clusters[j])
+            print('Cluster player medians:')
+            print(x)
+            j = j + 1
 
-        # Draw scatter plots
-        print('Drawing scatter plots...')
-        #dist_mat = generate_distance_matrix(clean_data)
-        # transformed = pd.DataFrame(pca.fit_transform(transformed_data))
+        # T-SNE PLOTTING
+        print("T-SNE plotting...")
+        plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
+        #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
+        #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
 
-        plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
-
-        palette = sns.color_palette('hls', hdbscan_instance.labels_.max()+1)
-        cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
-                          if col >= 0 else (0.8, 0.8, 0.8) for col, sat in
-                          zip(hdbscan_instance.labels_, hdbscan_instance.probabilities_)]
-
-        pyplot.scatter(transformed_data[0], transformed_data[1], color=cluster_colors, **plot_kwds)
-        pyplot.title(str(hdbscan_instance.min_samples))
-        pyplot.savefig('scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples craycray.png', dpi=300)
-        pyplot.show()
+# label_data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/TSNE-fitted data with all data - HDBSCAN labels (1).csv")['label'].values
+# data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/Selected data.csv")
+# average_players = getAveragePlayerFromCluster(data, label_data)
+#
+# for x in average_players:
+#     print('\nCluster player medians:')
+#     print(x)
