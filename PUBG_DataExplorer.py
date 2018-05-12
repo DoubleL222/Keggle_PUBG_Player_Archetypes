@@ -84,6 +84,7 @@ temp_death_data = selected_death_data
 print("NEW agg data: ",len(temp_death_data.index))
 '''
 last_match_start_time = time.time()
+match_summary_data = []
 for index, row in temp_agg_data.iterrows():
     # print("Index: ", index, "; time: ", time.time() - start_time)
     '''
@@ -92,6 +93,11 @@ for index, row in temp_agg_data.iterrows():
     '''
     curr_match_id = row['match_id']
     if not prevMatchId == curr_match_id:
+        prevMatchId = curr_match_id
+        match_count += 1
+        if match_count < 78000:
+            #print('breaking')
+            continue
         start_reading_deaths = time.time()
         '''
         if not i == 0:
@@ -102,15 +108,17 @@ for index, row in temp_agg_data.iterrows():
         death_data = temp_death_data.loc[temp_death_data['match_id'] == curr_match_id]
         # temp_death_data.drop(temp_death_data.index[[death_data.index.values]], inplace=True)
         # temp_death_data.reset_index(drop=True, inplace=True)
-        prevMatchId = curr_match_id
-        match_count += 1
+
         # print('next match; at row ', i, '; Time it took to read deaths: ',time.time()-start_reading_deaths)
         if match_count % 1000 == 0:
             print('writing file: ', match_count, '; took: ', format(time.time() - last_match_start_time, '.2f'), " s")
-            Write_To_File(match_count, match_summary_data)
+            if len(match_summary_data) > 0:
+                Write_To_File(match_count, match_summary_data)
             match_summary_data = []
             last_match_start_time = time.time()
-
+    if match_count < 78000:
+        #print('continuing')
+        continue
     # Find all rows for the current match
     # death_data = temp_death_data.loc[temp_death_data['match_id'] == row['match_id']]
 

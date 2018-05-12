@@ -68,6 +68,36 @@ def normalise_column(_col):
     return np.array(new_col)
 
 
+def multiply_column(_col, _multiplier):
+    new_col = []
+    for _val in _col:
+        new_col.append(_val*_multiplier)
+    return np.array(new_col)
+
+
+# FIND OUTLIERS USING Quartiles
+def find_outliers(_col, outer_fence_factor):
+    q1 = _col.quantile(0.25)
+    q3 = _col.quantile(0.75)
+    q_i_r = q3 - q1
+    # Extended outer fences to not include 38 years old
+    outer_fence_low = q1 - q_i_r * outer_fence_factor
+    outer_fence_high = q3 + q_i_r * outer_fence_factor
+    indices = []
+    for _val in _col:
+        if _val < outer_fence_low or _val > outer_fence_high:
+            indices.append(list(_col).index(_val))
+            # print(_val)
+    print("Indices: " + str(indices.__len__()))
+    return indices
+
+
+# REPLACE OUTLIERS IN _outlier_indices WITH MEDIAN COLUMN VALUE
+def replace_outliers_with_medians(_data, _colName, _outlier_indice):
+    median_value = _data[_colName].median()
+    _data.loc[_colName, _outlier_indice] = median_value
+    return
+
 # FIND OUTLIERS USING Quartiles
 def find_outliers(_col, outer_fence_factor):
     q1 = _col.quantile(0.25)
