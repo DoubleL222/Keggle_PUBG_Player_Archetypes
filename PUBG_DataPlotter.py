@@ -9,6 +9,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as pyplot
 import matplotlib.cm as cm
 
+
 # # nrows=20
 # # usecols=[1,2]
 #
@@ -63,31 +64,44 @@ def normalise_column(_col):
     min_val = np.amin(_col)
     new_col = []
     for _val in _col:
-        _newVal = (_val - min_val) / (max_val - min_val)
-        new_col.append(_newVal)
+        if not (max_val - min_val) == 0:
+            _newVal = (_val - min_val) / (max_val - min_val)
+            new_col.append(_newVal)
+        else:
+            new_col.append(0)
     return np.array(new_col)
 
 
 def multiply_column(_col, _multiplier):
     new_col = []
     for _val in _col:
-        new_col.append(_val*_multiplier)
+        new_col.append(_val * _multiplier)
     return np.array(new_col)
 
 
+# REPLACE OUTLIERS IN _outlier_indices WITH MEDIAN COLUMN VALUE
+def replace_outliers_with_medians(_data, _colName, _outlier_indice):
+    median_value = _data[_colName].median()
+    _data.loc[_colName, _outlier_indice] = median_value
+    return
+
+
 # FIND OUTLIERS USING Quartiles
 def find_outliers(_col, outer_fence_factor):
-    q1 = _col.quantile(0.25)
-    q3 = _col.quantile(0.75)
+    col_quantiles = _col.quantile([0.25, 0.75])
+    q1 = col_quantiles.iloc[0]
+    q3 = col_quantiles.iloc[1]
     q_i_r = q3 - q1
+    print("Found quantiles")
     # Extended outer fences to not include 38 years old
     outer_fence_low = q1 - q_i_r * outer_fence_factor
     outer_fence_high = q3 + q_i_r * outer_fence_factor
     indices = []
+    i = 0
     for _val in _col:
         if _val < outer_fence_low or _val > outer_fence_high:
-            indices.append(list(_col).index(_val))
-            # print(_val)
+            indices.append(i)
+        i = i + 1
     print("Indices: " + str(indices.__len__()))
     return indices
 
@@ -98,28 +112,6 @@ def replace_outliers_with_medians(_data, _colName, _outlier_indice):
     _data.loc[_colName, _outlier_indice] = median_value
     return
 
-# FIND OUTLIERS USING Quartiles
-def find_outliers(_col, outer_fence_factor):
-    q1 = _col.quantile(0.25)
-    q3 = _col.quantile(0.75)
-    q_i_r = q3 - q1
-    # Extended outer fences to not include 38 years old
-    outer_fence_low = q1 - q_i_r * outer_fence_factor
-    outer_fence_high = q3 + q_i_r * outer_fence_factor
-    indices = []
-    for _val in _col:
-        if _val < outer_fence_low or _val > outer_fence_high:
-            indices.append(list(_col).index(_val))
-            # print(_val)
-    print("Indices: " + str(indices.__len__()))
-    return indices
-
-
-# REPLACE OUTLIERS IN _outlier_indices WITH MEDIAN COLUMN VALUE
-def replace_outliers_with_medians(_data, _colName, _outlier_indice):
-    median_value = _data[_colName].median()
-    _data.loc[_colName, _outlier_indice] = median_value
-    return
 
 def clean_the_data(_data, _selected_columns):
     _data['distance_walked'] = normalise_column(_data['distance_walked'])
@@ -135,6 +127,7 @@ def clean_the_data(_data, _selected_columns):
     _data['party_size'] = normalise_column(_data['party_size'])
 
     return _data[_selected_columns]
+
 
 if __name__ == '__main__':
     pyplot.close('all')
@@ -157,7 +150,7 @@ if __name__ == '__main__':
     # Delete the rows with label "Ireland"
     # For label-based deletion, set the index first on the dataframe:
     data = data.query('kill_count != 0')
-    #data = data.dropna(how='all')
+    # data = data.dropna(how='all')
     data.reset_index(inplace=True)
     print("Number of rows after cleaning: " + str(data.__len__()))
 
@@ -186,11 +179,11 @@ if __name__ == '__main__':
         'knockdown_count', 'player_assists',
         'kill_knockdown_ratio', 'kill_distance',
         'survive_time', 'player_dmg', 'team_placement'
-        ,'party_size'
-        ,'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee', 'Crossbow'
-        ,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
+        , 'party_size'
+        , 'Sniper Rifle', 'Carbine', 'Assault Rifle', 'LMG', 'SMG', 'Shotgun', 'Pistols and Sidearm', 'Melee',
+        'Crossbow'
+        , 'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ])
-
 
     selected_data = pd.DataFrame(tSne.fit_transform(selected_data))
 
@@ -198,17 +191,18 @@ if __name__ == '__main__':
     print("Fitting and transforming data...")
 
     selected_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
-    #selected_data.to_csv(path_or_buf="TSNE-fitted data without weapons and party_size.csv", index=False)
-    #selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
-    #selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
+    # selected_data.to_csv(path_or_buf="TSNE-fitted data without weapons and party_size.csv", index=False)
+    # selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
+    # selected_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
     print("Running HDBSCAN...")
-    hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__()*significance), alpha=1.0)
+    hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=int(data.__len__() * significance), alpha=1.0)
     hdbscan_instance.fit(selected_data)
 
-    print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
+    print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max() + 1))
     print("HDBSCAN done!")
 
-    pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels.csv", index=True)
+    pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels.csv",
+                                                  index=True)
 
     # print("Plotting condensed tree...")
     # hdbscan_instance.condensed_tree_.plot()
@@ -216,13 +210,13 @@ if __name__ == '__main__':
 
     # Draw scatter plots
     print('Drawing scatter plots...')
-    #dist_mat = generate_distance_matrix(clean_data)
+    # dist_mat = generate_distance_matrix(clean_data)
     # transformed = pd.DataFrame(pca.fit_transform(selected_data))
 
     plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
 
-    palette = sns.color_palette('hls', hdbscan_instance.labels_.max()+1)
-    cluster_colors = [sns.desaturate(palette[col], np.clip(sat*2, 0.0, 1.0))
+    palette = sns.color_palette('hls', hdbscan_instance.labels_.max() + 1)
+    cluster_colors = [sns.desaturate(palette[col], np.clip(sat * 2, 0.0, 1.0))
                       if col >= 0 else (0.8, 0.8, 0.8) for col, sat in
                       zip(hdbscan_instance.labels_, hdbscan_instance.probabilities_)]
 

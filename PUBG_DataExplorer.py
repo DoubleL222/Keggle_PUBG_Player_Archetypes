@@ -95,7 +95,7 @@ for index, row in temp_agg_data.iterrows():
     if not prevMatchId == curr_match_id:
         prevMatchId = curr_match_id
         match_count += 1
-        if match_count < 78000:
+        if match_count < 143000:
             #print('breaking')
             continue
         start_reading_deaths = time.time()
@@ -116,7 +116,7 @@ for index, row in temp_agg_data.iterrows():
                 Write_To_File(match_count, match_summary_data)
             match_summary_data = []
             last_match_start_time = time.time()
-    if match_count < 78000:
+    if match_count < 143000:
         #print('continuing')
         continue
     # Find all rows for the current match
