@@ -183,15 +183,6 @@ column_names = list(non_normalized_data.columns.values)
 '''
 
 
-tSne = TSNE(n_components=2, init='pca', n_iter=250, n_iter_without_progress=300, verbose=4)
-plot_data = tSne.fit_transform(numpy_selected_data)
-'''
-np.savetxt('set1_tsne.csv', plot_data, delimiter=',')
-'''
-pca = PCA(n_components=2)
-plot_data_PCA = pca.fit_transform(numpy_selected_data)
-
-
 for K in range(4,5):
     print('\n\n\nK = ',K)
     kmeans = KMeans(n_clusters=K).fit(numpy_selected_data)
@@ -217,28 +208,4 @@ for K in range(4,5):
     unique_clusters = set(labels)
     palette = sns.color_palette('hls', len(unique_clusters))
     cluster_colors = [palette[col] for col in labels]
-
-    plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
-    pyplot.scatter(plot_data[:, 0], plot_data[:, 1], color=cluster_colors, **plot_kwds)
-    pyplot.savefig('scatterplot_KMeans_K=' + str(K) + '.png', dpi=300)
-    pyplot.show()
-    pyplot.scatter(plot_data_PCA[:, 0], plot_data_PCA[:, 1], color=cluster_colors, **plot_kwds)
-    pyplot.savefig('scatterplot_KMeans_K=' + str(K) + '.png', dpi=300)
-    pyplot.show()
-
-print("Starting ID3")
-clf = tree.DecisionTreeClassifier()
-clf.fit(non_normalized_numpy_data[:int(non_normalized_numpy_data.shape[0]/2), :], labels[:int(non_normalized_numpy_data.shape[0]/2)])
-prediction = clf.predict(non_normalized_numpy_data[int(non_normalized_numpy_data.shape[0]/2):, :])
-print("Accuracy: ", accuracy_score(labels[int(non_normalized_numpy_data.shape[0]/2):], prediction))
-print(column_names)
-unique_clusters = list(unique_clusters)
-string_clusters = []
-for class_index in unique_clusters:
-    string_clusters.append(str(class_index))
-column_names = list(column_names)
-#pred_tree = tree.export_graphviz(clf, out_file=None, feature_names=column_names, class_names=string_clusters, filled=True, rounded=True)
-pred_tree = tree.export_graphviz(clf, out_file='prediction.dot', feature_names=column_names, class_names=string_clusters, filled=True)
-graph = graphviz.Source(pred_tree)
-graph.render('prediction')
-graph
+    print("K-Means Calinski-Harabaz: " + str(smc.calinski_harabaz_score(selected_data, labels)))
