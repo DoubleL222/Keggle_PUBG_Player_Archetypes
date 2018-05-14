@@ -31,33 +31,6 @@ def getAveragePlayerFromCluster(data, labels):
         i = i+1
     return unique_clusters, centroids
 
-def normalise_column(_col):
-    max_val = np.amax(_col)
-    min_val = np.amin(_col)
-    new_col = []
-    for _val in _col:
-        if not (max_val - min_val) == 0:
-            _newVal = (_val - min_val) / (max_val - min_val)
-            new_col.append(_newVal)
-        else:
-            new_col.append(0)
-    return np.array(new_col)
-
-def clean_the_data(_data, _selected_columns):
-    _data['distance_walked'] = normalise_column(_data['distance_walked'])
-    _data['distance_rode'] = normalise_column(_data['distance_rode'])
-    _data['kill_count'] = normalise_column(_data['kill_count'])
-    _data['player_assists'] = normalise_column(_data['player_assists'])
-    _data['knockdown_count'] = normalise_column(_data['knockdown_count'])
-    _data['kill_distance'] = normalise_column(_data['kill_distance'])
-    _data['survive_time'] = normalise_column(_data['survive_time'])
-    _data['player_dmg'] = normalise_column(_data['player_dmg'])
-    _data['killed_from'] = normalise_column(_data['killed_from'])
-    _data['team_placement'] = normalise_column(_data['team_placement'])
-    _data['party_size'] = normalise_column(_data['party_size'])
-
-    return _data[_selected_columns]
-
 pyplot.close('all')
 
 
@@ -167,7 +140,7 @@ selected_data_columns = [
     , 'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
 ]
 non_normalized_data = data[selected_data_columns]
-selected_data = clean_the_data(selected_data, selected_data_columns)
+selected_data = PUBG_DataPlotter.clean_the_data(selected_data, selected_data_columns)
 
 selected_data['Sniper Rifle'] = multiply_column(selected_data['Sniper Rifle'], 0.2)
 selected_data['Carbine'] = multiply_column(selected_data['Carbine'], 0.2)
@@ -210,15 +183,6 @@ column_names = list(non_normalized_data.columns.values)
 '''
 
 
-tSne = TSNE(n_components=2, init='pca', n_iter=250, n_iter_without_progress=300, verbose=4)
-plot_data = tSne.fit_transform(numpy_selected_data)
-'''
-np.savetxt('set1_tsne.csv', plot_data, delimiter=',')
-'''
-pca = PCA(n_components=2)
-plot_data_PCA = pca.fit_transform(numpy_selected_data)
-
-
 for K in range(4,5):
     print('\n\n\nK = ',K)
     kmeans = KMeans(n_clusters=K).fit(numpy_selected_data)
@@ -244,28 +208,4 @@ for K in range(4,5):
     unique_clusters = set(labels)
     palette = sns.color_palette('hls', len(unique_clusters))
     cluster_colors = [palette[col] for col in labels]
-
-    plot_kwds = {'alpha': 0.4, 's': 1, 'linewidths': 0}
-    pyplot.scatter(plot_data[:, 0], plot_data[:, 1], color=cluster_colors, **plot_kwds)
-    pyplot.savefig('scatterplot_KMeans_K=' + str(K) + '.png', dpi=300)
-    pyplot.show()
-    pyplot.scatter(plot_data_PCA[:, 0], plot_data_PCA[:, 1], color=cluster_colors, **plot_kwds)
-    pyplot.savefig('scatterplot_KMeans_K=' + str(K) + '.png', dpi=300)
-    pyplot.show()
-
-print("Starting ID3")
-clf = tree.DecisionTreeClassifier()
-clf.fit(non_normalized_numpy_data[:int(non_normalized_numpy_data.shape[0]/2), :], labels[:int(non_normalized_numpy_data.shape[0]/2)])
-prediction = clf.predict(non_normalized_numpy_data[int(non_normalized_numpy_data.shape[0]/2):, :])
-print("Accuracy: ", accuracy_score(labels[int(non_normalized_numpy_data.shape[0]/2):], prediction))
-print(column_names)
-unique_clusters = list(unique_clusters)
-string_clusters = []
-for class_index in unique_clusters:
-    string_clusters.append(str(class_index))
-column_names = list(column_names)
-#pred_tree = tree.export_graphviz(clf, out_file=None, feature_names=column_names, class_names=string_clusters, filled=True, rounded=True)
-pred_tree = tree.export_graphviz(clf, out_file='prediction.dot', feature_names=column_names, class_names=string_clusters, filled=True)
-graph = graphviz.Source(pred_tree)
-graph.render('prediction')
-graph
+    print("K-Means Calinski-Harabaz: " + str(smc.calinski_harabaz_score(selected_data, labels)))
