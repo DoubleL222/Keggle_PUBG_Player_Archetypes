@@ -31,6 +31,33 @@ def getAveragePlayerFromCluster(data, labels):
         i = i+1
     return unique_clusters, centroids
 
+def normalise_column(_col):
+    max_val = np.amax(_col)
+    min_val = np.amin(_col)
+    new_col = []
+    for _val in _col:
+        if not (max_val - min_val) == 0:
+            _newVal = (_val - min_val) / (max_val - min_val)
+            new_col.append(_newVal)
+        else:
+            new_col.append(0)
+    return np.array(new_col)
+
+def clean_the_data(_data, _selected_columns):
+    _data['distance_walked'] = normalise_column(_data['distance_walked'])
+    _data['distance_rode'] = normalise_column(_data['distance_rode'])
+    _data['kill_count'] = normalise_column(_data['kill_count'])
+    _data['player_assists'] = normalise_column(_data['player_assists'])
+    _data['knockdown_count'] = normalise_column(_data['knockdown_count'])
+    _data['kill_distance'] = normalise_column(_data['kill_distance'])
+    _data['survive_time'] = normalise_column(_data['survive_time'])
+    _data['player_dmg'] = normalise_column(_data['player_dmg'])
+    _data['killed_from'] = normalise_column(_data['killed_from'])
+    _data['team_placement'] = normalise_column(_data['team_placement'])
+    _data['party_size'] = normalise_column(_data['party_size'])
+
+    return _data[_selected_columns]
+
 pyplot.close('all')
 
 
@@ -140,7 +167,7 @@ selected_data_columns = [
     , 'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
 ]
 non_normalized_data = data[selected_data_columns]
-selected_data = PUBG_DataPlotter.clean_the_data(selected_data, selected_data_columns)
+selected_data = clean_the_data(selected_data, selected_data_columns)
 
 selected_data['Sniper Rifle'] = multiply_column(selected_data['Sniper Rifle'], 0.2)
 selected_data['Carbine'] = multiply_column(selected_data['Carbine'], 0.2)
