@@ -160,22 +160,22 @@ if __name__ == '__main__':
     sns.set_style('white')
     sns.set_color_codes()
     pca = PCA(n_components=2)
-    tSne = TSNE(n_components=2, init='pca', n_iter=1500, n_iter_without_progress=300, verbose=4)
+    tSne = TSNE(n_components=2, init='pca', n_iter=1000, n_iter_without_progress=300, verbose=4)
 
     print('Loading data...')
     print("Loading file 1...")
-    # data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
-    #
-    # for i in range(2, 150):
-    #     print("Loading file " + str(i) + "...")
-    #     data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
-    #
-    # data.reset_index(inplace=True)
-    #
-    # print("Saving 'Original data.csv'...")
-    # data.to_csv(path_or_buf="Original data.csv", index=False)
+    data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
-    data = pd.read_csv('Original data.csv', error_bad_lines=False)
+    for i in range(2, 21):
+        print("Loading file " + str(i) + "...")
+        data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
+
+    data.reset_index(inplace=True)
+
+    print("Saving 'Original data.csv'...")
+    #data.to_csv(path_or_buf="Original data.csv", index=False)
+
+    # data = pd.read_csv('Original data.csv', error_bad_lines=False)
 
     # Clean Data
     print("Removing game_size column...")
@@ -246,13 +246,14 @@ if __name__ == '__main__':
     print("Clearing outliers from data...")
     data.drop(data.index[list(all_outliers)], inplace=True)
     data.reset_index(inplace=True)
-
+    del all_outliers
+    del new_outliers
     print("Number of rows after cleaning: " + str(data.__len__()))
     
     print("Saving 'Cleaned data.csv'...")
     data.to_csv(path_or_buf="Cleaned data.csv", index=False)
     #data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
-    orig_data = data.copy(True)
+    #orig_data = data.copy(True)
 
     print("Normalizing data...")
     # Normalize Data
@@ -310,7 +311,7 @@ if __name__ == '__main__':
     print("Saving 'Selected data.csv...'")
     selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
 
-    significance = 0.01
+    significance = 0.02
     print("Fitting and transforming data...")
     # transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
     # transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
@@ -320,7 +321,8 @@ if __name__ == '__main__':
 
     for i in range(3, 4):
         print("Running HDBSCAN...")
-        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=1)
+        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=1, memory='E:\Projects\ITU Project Workspace\Git\PUBG_Data_Mining\HDBSCAN cache', algorithm='boruvka_kdtree')
+        del data
         hdbscan_instance.fit(selected_data)
         # Save HDBSCAN labels to CSV
         pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="HDBSCAN labels (" + str(i) + ").csv", index=True)
@@ -341,8 +343,12 @@ if __name__ == '__main__':
         pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size.png', dpi=300)
         pyplot.show()
 
+        print("Reading cleaned data...")
+        orig_data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
+
         print("Getting average players...")
         unique_clusters, average_players = getAveragePlayerFromCluster(orig_data, hdbscan_instance.labels_)
+        del orig_data
         j = 0
         for x in average_players:
             print('\nCluster: ', unique_clusters[j])
