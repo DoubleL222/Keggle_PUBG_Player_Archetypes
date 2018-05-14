@@ -3,6 +3,7 @@ import numpy as np
 import hdbscan
 import seaborn as sns
 import collections
+import gc
 
 import matplotlib.pyplot as pyplot
 from sklearn.decomposition import PCA
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     print("Loading file 1...")
     data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
-    for i in range(2, 21):
+    for i in range(2, 13):
         print("Loading file " + str(i) + "...")
         data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
 
@@ -311,7 +312,7 @@ if __name__ == '__main__':
     print("Saving 'Selected data.csv...'")
     selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
 
-    significance = 0.02
+    significance = 0.01
     print("Fitting and transforming data...")
     # transformed_data = pd.DataFrame(tSne.fit_transform(selected_data))
     # transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data.csv", index=False)
@@ -321,8 +322,9 @@ if __name__ == '__main__':
 
     for i in range(3, 4):
         print("Running HDBSCAN...")
-        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=1, memory='E:\Projects\ITU Project Workspace\Git\PUBG_Data_Mining\HDBSCAN cache', algorithm='boruvka_kdtree')
+        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
         del data
+        gc.collect()
         hdbscan_instance.fit(selected_data)
         # Save HDBSCAN labels to CSV
         pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="HDBSCAN labels (" + str(i) + ").csv", index=True)
@@ -363,12 +365,3 @@ if __name__ == '__main__':
         plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
         #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
         #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
-
-
-# label_data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/TSNE-fitted data with all data - HDBSCAN labels (1).csv")['label'].values
-# data = pd.read_csv(filepath_or_buffer="RESULTS/HDBSCAN + T-SNE (1)/3%/Selected data.csv")
-# average_players = getAveragePlayerFromCluster(data, label_data)
-#
-# for x in average_players:
-#     print('\nCluster player medians:')
-#     print(x)
