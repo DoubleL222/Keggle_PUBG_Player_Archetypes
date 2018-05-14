@@ -204,7 +204,7 @@ if __name__ == '__main__':
     # REMOVE OUTLIERS distance_rode
     print("Removing distance_rode outliers...")
     new_outliers = find_outliers(data['distance_rode'], 4)
-    print(data['distance_rode'].iloc[new_outliers])
+    #print(data['distance_rode'].iloc[new_outliers])
     all_outliers = all_outliers.union(new_outliers)
 
     # REMOVE OUTLIERS kill_distance
@@ -248,8 +248,7 @@ if __name__ == '__main__':
     data.reset_index(inplace=True)
 
     print("Number of rows after cleaning: " + str(data.__len__()))
-    print("Maximum kill distance: " + str(data['kill_distance'].max()))
-
+    
     print("Saving 'Cleaned data.csv'...")
     data.to_csv(path_or_buf="Cleaned data.csv", index=False)
     #data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
