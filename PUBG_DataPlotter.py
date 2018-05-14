@@ -79,18 +79,21 @@ def multiply_column(_col, _multiplier):
 
 # FIND OUTLIERS USING Quartiles
 def find_outliers(_col, outer_fence_factor):
-    q1 = _col.quantile(0.25)
-    q3 = _col.quantile(0.75)
+    col_quantiles = _col.quantile([0.25, 0.75])
+    q1 = col_quantiles.iloc[0]
+    q3 = col_quantiles.iloc[1]
     q_i_r = q3 - q1
+    print("Found quantiles")
     # Extended outer fences to not include 38 years old
     outer_fence_low = q1 - q_i_r * outer_fence_factor
     outer_fence_high = q3 + q_i_r * outer_fence_factor
     indices = []
+    i = 0
     for _val in _col:
         if _val < outer_fence_low or _val > outer_fence_high:
-            indices.append(list(_col).index(_val))
-            # print(_val)
-    #print("Indices: " + str(indices.__len__()))
+            indices.append(i)
+        i = i + 1
+    print("Indices: " + str(indices.__len__()))
     return indices
 
 
@@ -113,10 +116,10 @@ def getAveragePlayerFromCluster(data, labels):
     return unique_clusters, centroids
 
 
-def plot(algorithm, selected_data, image_name, dpi=300):
+def plot(algorithm, selected_data, name, dpi=300):
     transformed_data = pd.DataFrame(algorithm.fit_transform(selected_data))
 
-    transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ").csv", index=False)
+    transformed_data.to_csv(path_or_buf=name + '.csv', index=False)
 
     # Draw scatter plots
     print('Drawing scatter plots...')
@@ -133,7 +136,7 @@ def plot(algorithm, selected_data, image_name, dpi=300):
 
     pyplot.scatter(x=transformed_data[0], y=transformed_data[1], color=cluster_colors, **plot_kwds)
     pyplot.title(str(hdbscan_instance.min_cluster_size))
-    pyplot.savefig(image_name, dpi=dpi)
+    pyplot.savefig(name + '.png', dpi=dpi)
     pyplot.show()
 
 
@@ -150,6 +153,7 @@ def output_centroids(centroids):
     new_file.columns = column_names
     new_file.to_csv('HDBSCAN centroids.csv', index=False)
 
+
 if __name__ == '__main__':
     pyplot.close('all')
     sns.set_context('poster')
@@ -160,61 +164,96 @@ if __name__ == '__main__':
 
     print('Loading data...')
     print("Loading file 1...")
-    orig_data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
+    # data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
+    #
+    # for i in range(2, 150):
+    #     print("Loading file " + str(i) + "...")
+    #     data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
+    #
+    # data.reset_index(inplace=True)
+    #
+    # print("Saving 'Original data.csv'...")
+    # data.to_csv(path_or_buf="Original data.csv", index=False)
 
-    for i in range(2, 3):
-        print("Loading file " + str(i) + "...")
-        orig_data = orig_data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
-
-    orig_data.reset_index(inplace=True)
+    data = pd.read_csv('Original data.csv', error_bad_lines=False)
 
     # Clean Data
     print("Removing game_size column...")
-    orig_data = orig_data.drop(columns=['game_size'], axis=1)
+    data = data.drop(columns=['game_size'], axis=1)
 
     print("Removing players with no kills...")
-    orig_data = orig_data.query('kill_count != 0')
+    data = data.query('kill_count != 0')
+    print("Removing players who are not in a 4-man team...")
+    data = data.query('party_size == 4')
     #orig_data = orig_data.query('survive_time > 600')
     #orig_data = orig_data.query('party_size == 2')
 
     # Replaced NaN values with median of the actual values
     print("Replacing NaN values in killed_from with median of the actual values...")
-    median = orig_data.query('killed_from != "Nan"')['killed_from'].median()
-    orig_data['killed_from'] = orig_data['killed_from'].fillna(median)
+    median = data.query('killed_from != "Nan"')['killed_from'].median()
+    data['killed_from'] = data['killed_from'].fillna(median)
 
-    print("Removing outliers...")
+    all_outliers = set()
+
     # REMOVE OUTLIERS distance_walked
-    outlier_indices = find_outliers(orig_data['distance_walked'], 5)
-    #print("distance_walked outliers: ", orig_data.iloc[outlier_indices]['distance_walked'])
-    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+    print("Removing distance_walked outliers...")
+    new_outliers = find_outliers(data['distance_walked'], 3)
+    # print(data['distance_walked'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
+
+    # REMOVE OUTLIERS distance_rode
+    print("Removing distance_rode outliers...")
+    new_outliers = find_outliers(data['distance_rode'], 4)
+    print(data['distance_rode'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
 
     # REMOVE OUTLIERS kill_distance
-    outlier_indices = find_outliers(orig_data['kill_distance'], 5)
-    #print("kill_distance outliers: ", orig_data.iloc[outlier_indices]['kill_distance'])
-    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+    print("Removing kill_distance outliers...")
+    new_outliers = find_outliers(data['kill_distance'], 10)
+    # print(data['kill_distance'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
 
     # REMOVE OUTLIERS FROM killed_from
-    outlier_indices = find_outliers(orig_data['killed_from'], 5)
-    #print("killed_from outliers: ", orig_data.iloc[outlier_indices]['killed_from'])
-    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+    print("Removing killed_from outliers...")
+    new_outliers = find_outliers(data['killed_from'], 10)
+    # print(data['killed_from'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
 
     # REMOVE OUTLIERS player_dmg
-    outlier_indices = find_outliers(orig_data['player_dmg'], 5)
-    #print("player_dmg outliers: ", orig_data.iloc[outlier_indices]['player_dmg'])
-    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+    print("Removing player_dmg outliers...")
+    new_outliers = find_outliers(data['player_dmg'], 10)
+    # print(data['player_dmg'].iloc[new_outliers], "; kill count: ",data['kill_count'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
+
+    # REMOVE OUTLIERS kill_count
+    print("Removing kill_count outliers...")
+    new_outliers = find_outliers(data['kill_count'], 12)
+    #print(data['kill_count'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
+
+    # REMOVE OUTLIERS knockdown_count
+    print("Removing knockdown_count outliers...")
+    new_outliers = find_outliers(data['knockdown_count'], 12)
+    #print(data['knockdown_count'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
 
     # REMOVE OUTLIERS FROM survive_time
-    outlier_indices = find_outliers(orig_data['survive_time'], 5)
-    #print("Survive time outliers: ", orig_data.iloc[outlier_indices]['survive_time'])
-    orig_data.drop(orig_data.index[outlier_indices], inplace=True)
+    print("Removing survive_time outliers...")
+    new_outliers = find_outliers(data['survive_time'], 1)
+    # print(data['survive_time'].iloc[new_outliers])
+    all_outliers = all_outliers.union(new_outliers)
 
-    orig_data.reset_index(inplace=True)
+    print("Clearing outliers from data...")
+    data.drop(data.index[list(all_outliers)], inplace=True)
+    data.reset_index(inplace=True)
 
-    print("Number of rows after cleaning: " + str(orig_data.__len__()))
+    print("Number of rows after cleaning: " + str(data.__len__()))
+    print("Maximum kill distance: " + str(data['kill_distance'].max()))
 
-    print("Maximum kill distance: " + str(orig_data['kill_distance'].max()))
-
-    data = orig_data.copy(True)
+    print("Saving 'Cleaned data.csv'...")
+    data.to_csv(path_or_buf="Cleaned data.csv", index=False)
+    #data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
+    orig_data = data.copy(True)
 
     print("Normalizing data...")
     # Normalize Data
@@ -234,21 +273,24 @@ if __name__ == '__main__':
     #data['kill_count'] = multiply_column(data['kill_count'], 0.4)
     #data['survive_time'] = multiply_column(data['survive_time'], 0.25)
     #data['kill_knockdown_ratio'] = multiply_column(data['Zone'], 0.25)
-    data['Sniper Rifle'] = multiply_column(data['Sniper Rifle'], 0.4)
-    data['Carbine'] = multiply_column(data['Carbine'], 0.4)
-    data['Assault Rifle'] = multiply_column(data['Assault Rifle'], 0.4)
-    data['LMG'] = multiply_column(data['LMG'], 0.4)
-    data['SMG'] = multiply_column(data['SMG'], 0.4)
-    data['Shotgun'] = multiply_column(data['Shotgun'], 0.4)
-    data['Pistols and Sidearm'] = multiply_column(data['Pistols and Sidearm'], 0.4)
-    data['Melee'] = multiply_column(data['Melee'], 0.4)
-    data['Crossbow'] = multiply_column(data['Crossbow'], 0.4)
-    data['Throwable'] = multiply_column(data['Throwable'], 0.4)
-    data['Vehicle'] = multiply_column(data['Vehicle'], 0.4)
-    data['Environment'] = multiply_column(data['Environment'], 0.4)
-    data['Zone'] = multiply_column(data['Zone'], 0.4)
-    data['Other'] = multiply_column(data['Other'], 0.4)
-    data['down and out'] = multiply_column(data['down and out'], 0.4)
+    data['Sniper Rifle'] = multiply_column(data['Sniper Rifle'], 0.2)
+    data['Carbine'] = multiply_column(data['Carbine'], 0.2)
+    data['Assault Rifle'] = multiply_column(data['Assault Rifle'], 0.2)
+    data['LMG'] = multiply_column(data['LMG'], 0.2)
+    data['SMG'] = multiply_column(data['SMG'], 0.2)
+    data['Shotgun'] = multiply_column(data['Shotgun'], 0.2)
+    data['Pistols and Sidearm'] = multiply_column(data['Pistols and Sidearm'], 0.2)
+    data['Melee'] = multiply_column(data['Melee'], 0.2)
+    data['Crossbow'] = multiply_column(data['Crossbow'], 0.2)
+    data['Throwable'] = multiply_column(data['Throwable'], 0.2)
+    data['Vehicle'] = multiply_column(data['Vehicle'], 0.2)
+    data['Environment'] = multiply_column(data['Environment'], 0.2)
+    data['Zone'] = multiply_column(data['Zone'], 0.2)
+    data['Other'] = multiply_column(data['Other'], 0.2)
+    data['down and out'] = multiply_column(data['down and out'], 0.2)
+
+    print("Saving 'Cleaned, normalized and weighted data.csv'...")
+    data.to_csv(path_or_buf="Cleaned, normalized and weighted data.csv", index=False)
 
     print("Selecting data columns...")
     selected_data = data[[
@@ -266,6 +308,7 @@ if __name__ == '__main__':
         ,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ]]
 
+    print("Saving 'Selected data.csv...'")
     selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
 
     significance = 0.01
@@ -278,10 +321,10 @@ if __name__ == '__main__':
 
     for i in range(3, 4):
         print("Running HDBSCAN...")
-        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
+        hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=1)
         hdbscan_instance.fit(selected_data)
         # Save HDBSCAN labels to CSV
-        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="TSNE-fitted data with all data - HDBSCAN labels (" + str(i) + ").csv", index=True)
+        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="HDBSCAN labels (" + str(i) + ").csv", index=True)
         print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
 
         print("HDBSCAN done!")
@@ -292,11 +335,11 @@ if __name__ == '__main__':
 
         print("PCA plotting...")
         # PCA PLOTTING
-        plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
+        plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
 
         print("Plotting condensed tree...")
         hdbscan_instance.condensed_tree_.plot()
-        pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png', dpi=300)
+        pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size.png', dpi=300)
         pyplot.show()
 
         print("Getting average players...")
@@ -312,7 +355,7 @@ if __name__ == '__main__':
 
         # T-SNE PLOTTING
         print("T-SNE plotting...")
-        plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_samples) + ' min samples.png')
+        plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
         #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
         #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
 
