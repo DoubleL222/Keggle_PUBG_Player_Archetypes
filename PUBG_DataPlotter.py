@@ -320,14 +320,14 @@ if __name__ == '__main__':
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
 
-    for i in range(0, 1):
-        print("Running HDBSCAN...")
+    for i in range(0, 11):
+        print("Running HDBSCAN " + str(i+1) + "...")
         hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
         del data
         gc.collect()
         hdbscan_instance.fit(selected_data)
         # Save HDBSCAN labels to CSV
-        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="HDBSCAN labels (" + str(i) + ").csv", index=True)
+        pd.DataFrame(hdbscan_instance.labels_).to_csv(path_or_buf="HDBSCAN labels (" + str(i+1) + ").csv", index=True)
         print("# of HDBSCAN labels: " + str(hdbscan_instance.labels_.max()+1))
 
         print("HDBSCAN done!")
@@ -338,7 +338,7 @@ if __name__ == '__main__':
 
         print("PCA plotting...")
         # PCA PLOTTING
-        plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
+        plot(pca, selected_data, 'PCA scatterplot (' + str(i+1) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
 
         #print("Plotting condensed tree...")
         #hdbscan_instance.condensed_tree_.plot()
@@ -362,6 +362,6 @@ if __name__ == '__main__':
 
         # T-SNE PLOTTING
         print("T-SNE plotting...")
-        plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
+        plot(tSne, selected_data, 'T-SNE scatterplot (' + str(i+1) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
         #transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data (7).csv")
         #transformed_data.to_csv(path_or_buf="TSNE-fitted data with all data (" + str(i) + ") craycray.csv", index=False)
