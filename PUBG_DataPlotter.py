@@ -120,7 +120,7 @@ def getAveragePlayerFromCluster(data, labels):
 def plot(algorithm, selected_data, name, dpi=300):
     transformed_data = pd.DataFrame(algorithm.fit_transform(selected_data))
 
-    transformed_data.to_csv(path_or_buf=name + '.csv', index=False)
+    #transformed_data.to_csv(path_or_buf=name + '.csv', index=False)
 
     # Draw scatter plots
     print('Drawing scatter plots...')
@@ -167,13 +167,13 @@ if __name__ == '__main__':
     print("Loading file 1...")
     data = pd.read_csv('output_data/summary_data_1000.csv', error_bad_lines=False)
 
-    for i in range(2, 13):
+    for i in range(2, 11):
         print("Loading file " + str(i) + "...")
         data = data.append(pd.read_csv('output_data/summary_data_' + str(i) + '000.csv', error_bad_lines=False))
 
     data.reset_index(inplace=True)
 
-    print("Saving 'Original data.csv'...")
+    #print("Saving 'Original data.csv'...")
     #data.to_csv(path_or_buf="Original data.csv", index=False)
 
     # data = pd.read_csv('Original data.csv', error_bad_lines=False)
@@ -250,11 +250,11 @@ if __name__ == '__main__':
     del all_outliers
     del new_outliers
     print("Number of rows after cleaning: " + str(data.__len__()))
-    
-    print("Saving 'Cleaned data.csv'...")
-    data.to_csv(path_or_buf="Cleaned data.csv", index=False)
+
+    #print("Saving 'Cleaned data.csv'...")
+    #data.to_csv(path_or_buf="Cleaned data.csv", index=False)
     #data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
-    #orig_data = data.copy(True)
+    orig_data = data.copy(True)
 
     print("Normalizing data...")
     # Normalize Data
@@ -290,8 +290,8 @@ if __name__ == '__main__':
     data['Other'] = multiply_column(data['Other'], 0.2)
     data['down and out'] = multiply_column(data['down and out'], 0.2)
 
-    print("Saving 'Cleaned, normalized and weighted data.csv'...")
-    data.to_csv(path_or_buf="Cleaned, normalized and weighted data.csv", index=False)
+    #print("Saving 'Cleaned, normalized and weighted data.csv'...")
+    #data.to_csv(path_or_buf="Cleaned, normalized and weighted data.csv", index=False)
 
     print("Selecting data columns...")
     selected_data = data[[
@@ -309,8 +309,8 @@ if __name__ == '__main__':
         ,'Throwable', 'Vehicle', 'Environment', 'Zone', 'Other', 'down and out'
     ]]
 
-    print("Saving 'Selected data.csv...'")
-    selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
+    #print("Saving 'Selected data.csv...'")
+    #selected_data.to_csv(path_or_buf="Selected data.csv", index=False)
 
     significance = 0.01
     print("Fitting and transforming data...")
@@ -320,7 +320,7 @@ if __name__ == '__main__':
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data with all data.csv")
     # transformed_data = pd.read_csv(filepath_or_buffer="TSNE-fitted data without weapons and party_size.csv")
 
-    for i in range(3, 4):
+    for i in range(0, 1):
         print("Running HDBSCAN...")
         hdbscan_instance = hdbscan.HDBSCAN(min_cluster_size=int(data.__len__()*significance), min_samples=None, alpha=1.0, core_dist_n_jobs=2)
         del data
@@ -340,13 +340,13 @@ if __name__ == '__main__':
         # PCA PLOTTING
         plot(pca, selected_data, 'PCA scatterplot (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size')
 
-        print("Plotting condensed tree...")
-        hdbscan_instance.condensed_tree_.plot()
-        pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size.png', dpi=300)
-        pyplot.show()
+        #print("Plotting condensed tree...")
+        #hdbscan_instance.condensed_tree_.plot()
+        #pyplot.savefig('Condensed tree (' + str(i) + ') ' + str(hdbscan_instance.min_cluster_size) + ' min_cluster_size.png', dpi=300)
+        #pyplot.show()
 
-        print("Reading cleaned data...")
-        orig_data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
+        #print("Reading cleaned data...")
+        #orig_data = pd.read_csv('Cleaned data.csv', error_bad_lines=False)
 
         print("Getting average players...")
         unique_clusters, average_players = getAveragePlayerFromCluster(orig_data, hdbscan_instance.labels_)
